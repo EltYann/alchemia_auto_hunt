@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+Auto Hunter - Main hunting logic
+Versi tanpa OpenCV (numpy + PIL only)
+"""
+
 import time
 import logging
 import random
@@ -23,7 +29,7 @@ class Hunter:
     Auto hunter untuk Alchemia Story.
     
     Flow:
-    1. Screenshot
+    1. Screenshot layar
     2. Check drop dialog → tap OK
     3. Check combat mode → tunggu
     4. Cari monster → approach
@@ -39,7 +45,7 @@ class Hunter:
         self.error_count = 0
         self.search_count = 0
         
-        # ADB
+        # ADB Controller
         self.adb = ADBController(
             device_ip=self.config['adb']['device_ip'],
             port=self.config['adb']['port']
@@ -59,7 +65,7 @@ class Hunter:
             click_variance=self.config['anti_detection']['click_variance']
         )
         
-        # Input
+        # Input controller
         self.input = InputController(
             adb_controller=self.adb,
             screen_width=self.config['adb']['screen_width'],
@@ -107,6 +113,7 @@ class Hunter:
             path = monster_dir / f"{monster_name}.png"
             if path.exists():
                 self.vision.load_template(str(path), f"monster_{monster_name}")
+                logger.info(f"Template monster '{monster_name}' loaded")
             else:
                 logger.warning(f"Template monster '{monster_name}' belum ada di {path}")
                 logger.warning(f"Jalankan: python tools/capture_monster.py")
@@ -119,6 +126,7 @@ class Hunter:
         ok_path = button_dir / f"{ok_template}.png"
         if ok_path.exists():
             self.vision.load_template(str(ok_path), f"button_{ok_template}")
+            logger.info(f"Template OK button loaded")
         else:
             logger.warning(f"Template OK button belum ada di {ok_path}")
             logger.warning(f"Jalankan: python tools/capture_ok_button.py")
@@ -147,7 +155,10 @@ class Hunter:
         """Stop hunter."""
         self.running = False
         
-        elapsed = time.time() - self.stats["start_time"] if self.stats["start_time"] else 0
+        elapsed = 0
+        if self.stats["start_time"]:
+            elapsed = time.time() - self.stats["start_time"]
+        
         hours = int(elapsed // 3600)
         minutes = int((elapsed % 3600) // 60)
         seconds = int(elapsed % 60)
@@ -245,6 +256,7 @@ class Hunter:
                 # GC berkala
                 if self.stats["screenshots"] % 200 == 0:
                     gc.collect()
+                    logger.debug(f"GC done. Stats: {self.stats}")
                 
             except KeyboardInterrupt:
                 self.stop()
@@ -261,6 +273,7 @@ class Hunter:
     def _check_drop_dialog(self, screenshot: np.ndarray) -> bool:
         """
         Check apakah ada dialog drop.
+        Cek template OK button atau brightness di region.
         """
         # Cek template OK button
         ok_template = self.config['drop']['ok_button_template']
@@ -269,24 +282,14 @@ class Hunter:
         if ok_pos:
             return True
         
-        # Fallback: cek region OK button buat perubahan warna
-        region = self.config['drop']['ok_button_region']
-        x, y, w, h = region
+        # Fallback: cek brightness di region OK button
+        region = tuple(self.config['drop']['ok_button_region'])
+        brightness_threshold = 80
         
-        if x + w > screenshot.shape[1] or y + h > screenshot.shape[0]:
-            return False
-        
-        roi = screenshot[y:y+h, x:x+w]
-        
-        # Check kalau region ini cerah (tombol biasanya kontras)
-        mean_brightness = np.mean(roi)
-        if mean_brightness > 100:
-            return True
-        
-        return False
+        return self.vision.detect_brightness(screenshot, region, brightness_threshold)
     
     def _tap_ok(self, screenshot: np.ndarray):
-        """Tap tombol OK."""
+        """Tap tombol OK buat close dialog drop."""
         max_attempts = self.config['drop']['max_ok_attempts']
         
         # Coba template dulu
@@ -296,9 +299,10 @@ class Hunter:
         if ok_pos:
             self.input.tap(ok_pos[0], ok_pos[1])
             self.stats["actions"] += 1
+            logger.debug(f"Tap OK di {ok_pos}")
             return
         
-        # Fallback: tap region
+        # Fallback: tap region OK button
         region = self.config['drop']['ok_button_region']
         x1, y1, x2, y2 = region
         ok_x = (x1 + x2) // 2
@@ -340,16 +344,17 @@ class Hunter:
         """
         monster_templates = self.config['hunting']['monster_templates']
         
-        # Cari monster terdekat dari center
+        # Center layar (posisi karakter biasanya di tengah)
         center = (
             self.input.screen_width // 2,
             self.input.screen_height // 2
         )
         
+        # Cari monster terdekat
         closest = self.vision.find_closest_monster(screenshot, monster_templates, center)
         
         if closest:
-            monster_name, monster_pos, distance = closest
+            monster_name, monster_pos, confidence = closest
             return (monster_name, monster_pos)
         
         return None
@@ -405,7 +410,6 @@ class Hunter:
         """
         Gerak cari monster kalau ga keliatan.
         """
-        search_swipes = self.config['navigation']['search_swipes']
         swipe_distance = self.config['navigation']['swipe_distance']
         swipe_duration = self.config['navigation']['swipe_duration']
         
@@ -430,4 +434,5 @@ class Hunter:
         )
         
         logger.debug(f"Search move: ({dx}, {dy})")
+        self.stats["actions"] += 1
         time.sleep(1)
