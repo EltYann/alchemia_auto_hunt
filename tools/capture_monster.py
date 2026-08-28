@@ -50,7 +50,9 @@ def main():
     )
     
     # Buat folder
-    Path("config/templates/monsters").mkdir(parents=True, exist_ok=True)
+    monster_dir = Path("config/templates/monsters")
+    if not monster_dir.exists():
+        monster_dir.mkdir(parents=True)
     
     print("\n=== Cara Pakai ===")
     print("1. Buka game Alchemia Story")
