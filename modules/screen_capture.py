@@ -1,12 +1,14 @@
+cat > modules/screen_capture.py << 'EOF'
 #!/usr/bin/env python3
 """
-Screen Capture - Ambil screenshot tanpa OpenCV
-Pake PIL buat decode image
+Screen Capture - Ambil screenshot dari device
+Versi tanpa OpenCV, pake PIL
 """
 
 import logging
 import time
-from typing import Optional, Tuple
+import subprocess
+from typing import Optional
 from io import BytesIO
 
 import numpy as np
@@ -40,10 +42,15 @@ class ScreenCapture:
             return self.last_screenshot
         
         try:
-            screenshot_bytes = self.adb.screenshot()
+            # Cara 1: exec-out screencap langsung
+            screenshot_bytes = self._capture_direct()
             
             if screenshot_bytes is None:
-                logger.error("Gagal ambil screenshot")
+                # Cara 2: screencap ke file terus pull
+                screenshot_bytes = self._capture_via_file()
+            
+            if screenshot_bytes is None:
+                logger.error("Semua metode screenshot gagal")
                 return None
             
             # Decode pake PIL
@@ -54,7 +61,7 @@ class ScreenCapture:
             if img.width != self.width or img.height != self.height:
                 img = img.resize((self.width, self.height), Image.LANCZOS)
             
-            # Convert ke numpy array
+            # Convert ke numpy
             screenshot = np.array(img, dtype=np.uint8)
             
             self.last_screenshot = screenshot
@@ -64,6 +71,69 @@ class ScreenCapture:
             
         except Exception as e:
             logger.error(f"Capture error: {e}")
+            return None
+    
+    def _capture_direct(self) -> Optional[bytes]:
+        """Capture langsung via exec-out."""
+        try:
+            device_id = self.adb.device_id
+            
+            cmd = ["adb"]
+            if device_id:
+                cmd.extend(["-s", device_id])
+            cmd.extend(["exec-out", "screencap", "-p"])
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                timeout=15
+            )
+            
+            if result.returncode == 0 and len(result.stdout) > 0:
+                logger.debug(f"Screenshot direct: {len(result.stdout)} bytes")
+                return result.stdout
+            
+            logger.warning(f"Screenshot direct gagal: {result.stderr}")
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Screenshot direct error: {e}")
+            return None
+    
+    def _capture_via_file(self) -> Optional[bytes]:
+        """Capture via file di device terus pull."""
+        try:
+            device_id = self.adb.device_id
+            
+            # Screenshot ke file di device
+            cmd1 = ["adb"]
+            if device_id:
+                cmd1.extend(["-s", device_id])
+            cmd1.extend(["shell", "screencap", "-p", "/sdcard/screen.png"])
+            
+            result1 = subprocess.run(cmd1, capture_output=True, timeout=15)
+            
+            if result1.returncode != 0:
+                logger.warning(f"Screencap ke file gagal: {result1.stderr}")
+                return None
+            
+            # Pull file
+            cmd2 = ["adb"]
+            if device_id:
+                cmd2.extend(["-s", device_id])
+            cmd2.extend(["exec-out", "cat", "/sdcard/screen.png"])
+            
+            result2 = subprocess.run(cmd2, capture_output=True, timeout=15)
+            
+            if result2.returncode == 0 and len(result2.stdout) > 0:
+                logger.debug(f"Screenshot via file: {len(result2.stdout)} bytes")
+                return result2.stdout
+            
+            logger.warning("Cat file gagal")
+            return None
+            
+        except Exception as e:
+            logger.warning(f"Screenshot via file error: {e}")
             return None
     
     def save(self, screenshot: np.ndarray, filename: str) -> Optional[str]:
@@ -81,3 +151,4 @@ class ScreenCapture:
         except Exception as e:
             logger.error(f"Save error: {e}")
             return None
+EOF
