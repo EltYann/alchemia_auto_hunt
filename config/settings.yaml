@@ -7,10 +7,8 @@ adb:
 hunting:
   # Template monster yang dicari (file di config/templates/monsters/)
   monster_templates:
-    - "slime"
-    - "wolf"
-    - "goblin"
-  
+    - "mega"
+    
   # Threshold template matching (0.5-0.9, makin kecil makin gampang detect tapi makin banyak false positive)
   template_threshold: 0.65
   
