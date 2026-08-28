@@ -1,0 +1,70 @@
+adb:
+  device_ip: "127.0.0.1"
+  port: 5555
+  screen_width: 1080
+  screen_height: 2400
+
+hunting:
+  # Template monster yang dicari (file di config/templates/monsters/)
+  monster_templates:
+    - "slime"
+    - "wolf"
+    - "goblin"
+  
+  # Threshold template matching (0.5-0.9, makin kecil makin gampang detect tapi makin banyak false positive)
+  template_threshold: 0.65
+  
+  # Interval scan monster (detik)
+  scan_interval: 0.5
+  
+  # Berapa kali scan sebelum nyerah dan gerak cari
+  max_scan_attempts: 5
+
+combat:
+  # Region HP bar (buat detect combat mode)
+  hp_bar_region: [50, 30, 400, 100]
+  hp_bar_color: [0, 255, 0]
+  hp_bar_threshold: 50
+  
+  # Max waktu combat (detik) sebelum dianggap stuck
+  max_combat_time: 180
+  
+  # Check combat tiap berapa detik
+  combat_check_interval: 1.0
+
+drop:
+  # Region tombol OK (buat close dialog drop)
+  ok_button_region: [400, 1500, 680, 1900]
+  
+  # Template tombol OK (file di config/templates/buttons/ok_button.png)
+  ok_button_template: "ok_button"
+  
+  # Delay setelah tap OK (detik)
+  ok_delay: 1.0
+  
+  # Max tap OK sebelum nyerah
+  max_ok_attempts: 3
+
+navigation:
+  # Jarak monster dari center buat tentuin tap atau swipe
+  tap_threshold: 300
+  
+  # Swipe distance kalau monster jauh
+  swipe_distance: 500
+  swipe_duration: 400
+  
+  # Pattern pencarian kalau monster ga keliatan
+  search_pattern: "spiral"
+  search_swipes: 4
+
+anti_detection:
+  # Random delay antara actions (detik)
+  random_delay_min: 0.2
+  random_delay_max: 1.2
+  
+  # Jitter klik (pixel)
+  click_variance: 8
+  
+  # Random gerak kecil biar ga keliatan kaku
+  micro_movement: true
+  micro_movement_interval: 30
