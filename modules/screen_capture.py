@@ -41,26 +41,21 @@ class ScreenCapture:
             return self.last_screenshot
         
         try:
-            # Cara 1: exec-out screencap langsung
             screenshot_bytes = self._capture_direct()
             
             if screenshot_bytes is None:
-                # Cara 2: screencap ke file terus pull
                 screenshot_bytes = self._capture_via_file()
             
             if screenshot_bytes is None:
                 logger.error("Semua metode screenshot gagal")
                 return None
             
-            # Decode pake PIL
             img = Image.open(BytesIO(screenshot_bytes))
             img = img.convert('RGB')
             
-            # Jangan resize, pake ukuran asli dari screenshot
-              self.width = img.width
-              self.height = img.height
+            self.width = img.width
+            self.height = img.height
             
-            # Convert ke numpy
             screenshot = np.array(img, dtype=np.uint8)
             
             self.last_screenshot = screenshot
@@ -104,7 +99,6 @@ class ScreenCapture:
         try:
             device_id = self.adb.device_id
             
-            # Screenshot ke file di device
             cmd1 = ["adb"]
             if device_id:
                 cmd1.extend(["-s", device_id])
@@ -116,7 +110,6 @@ class ScreenCapture:
                 logger.warning(f"Screencap ke file gagal: {result1.stderr}")
                 return None
             
-            # Pull file
             cmd2 = ["adb"]
             if device_id:
                 cmd2.extend(["-s", device_id])
