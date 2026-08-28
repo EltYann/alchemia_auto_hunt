@@ -56,9 +56,9 @@ class ScreenCapture:
             img = Image.open(BytesIO(screenshot_bytes))
             img = img.convert('RGB')
             
-            # Resize
-            if img.width != self.width or img.height != self.height:
-                img = img.resize((self.width, self.height), Image.LANCZOS)
+            # Jangan resize, pake ukuran asli dari screenshot
+              self.width = img.width
+              self.height = img.height
             
             # Convert ke numpy
             screenshot = np.array(img, dtype=np.uint8)
