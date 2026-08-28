@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Auto Hunter - Main hunting logic
-"""
-
 import time
 import logging
 import random
