@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 Screen Capture - Ambil screenshot dari device
@@ -151,4 +150,3 @@ class ScreenCapture:
         except Exception as e:
             logger.error(f"Save error: {e}")
             return None
-EOF
