@@ -1,8 +1,8 @@
 adb:
   device_ip: "10.218.10.235"
   port: 38871
-  screen_width: 1220
-  screen_height: 2712
+  screen_width: 2712
+  screen_height: 1220
 
 hunting:
   # Template monster yang dicari (file di config/templates/monsters/)
