@@ -1,4 +1,4 @@
-cat > modules/screen_capture.py << 'EOF'
+
 #!/usr/bin/env python3
 """
 Screen Capture - Ambil screenshot dari device
