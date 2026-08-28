@@ -1,6 +1,6 @@
 adb:
-  device_ip: "127.0.0.1"
-  port: 5555
+  device_ip: "10.218.10.235"
+  port: 38871
   screen_width: 1080
   screen_height: 2400
 
